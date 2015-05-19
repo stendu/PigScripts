@@ -1,0 +1,11 @@
+A = LOAD '/data_input/branch1' using PigStorage(',') AS (acc_id:int,name:chararray,trxn_dt:chararray,trxn_type:chararray,amt:chararray);
+B = Filter A by amt != 'Amount';
+C = LOAD '/data_input/branch2' using PigStorage(',') AS (acc_id:int,name:chararray,channel:chararray,trxn_dt:chararray,trxn_type:chararray,amt:chararray);
+D = FOREACH B GENERATE acc_id,name,trxn_dt,trxn_type,amt;
+E = Filter D by amt != 'Amount';
+F = UNION B,E;
+G = FOREACH F GENERATE STRSPLIT(trxn_dt, '/', 3),trxn_type,REPLACE(amt, '\\$', '');
+H = FOREACH G GENERATE $0.$2,trxn_type,(int)$2;
+I = GROUP H by ($0,trxn_type);
+J = FOREACH I GENERATE group.$0,group.trxn_type,AVG(H.$2);
+STORE J into '/data_output/pig_trxn_output/20150519';
